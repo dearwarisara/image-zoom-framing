@@ -42,6 +42,8 @@ OPENAI_API_KEY="your-api-key" npm run dev
 
 บนโฮสต์ให้ใช้คำสั่ง build ว่าง และ start command เป็น `npm start` (Node 22+). ตั้ง `OPENAI_API_KEY` และ `APP_ACCESS_PASSWORD` เป็น environment secrets ในหน้า dashboard ของโฮสต์ ตรวจว่า route `/api/health` ตอบกลับก่อนใช้งาน
 
+สำหรับการ deploy ผ่าน Codex Sites จะใช้ Worker ที่ `worker/index.js` โดย build จะฝังหน้าเว็บและ assets เข้าไปใน Worker และสร้าง output ใน `dist/`. Site ใช้ audience แบบ private; ตั้ง `OPENAI_API_KEY` ผ่าน Site runtime secret ก่อนจึงจะเปิดใช้การแก้ภาพได้
+
 ## การทำงาน
 
 - เลือกหนึ่งรายการหรือหลายรายการใน UI: Zoom out, Zoom in, Resize และเปลี่ยนแนวตั้ง/แนวนอน
