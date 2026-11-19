@@ -1,16 +1,15 @@
 const operationLabels={"zoom-out":"Zoom out","zoom-in":"Zoom in",resize:"Resize","portrait-landscape":"Portrait → Landscape","landscape-portrait":"Landscape → Portrait"};
-const apiBase=location.hostname.endsWith('github.io')?'https://image-zoom-framing.optiwise-3224.chatgpt.site':'';
-const apiUrl=path=>`${apiBase}${path}`;
 const operationButtons=[...document.querySelectorAll('.operation')];
 const selectedOperations=new Set();
-let referenceChoice='no',mainFile=null,referenceFile=null,resultUrl='',apiKey='';
+let mainFile=null,resultUrl='';
 const $=id=>document.getElementById(id);
 const message=(text,type='error')=>{const node=$('message');node.textContent=text;node.classList.remove('hidden','success');if(type==='success')node.classList.add('success');};
 const hideMessage=()=>$('message').classList.add('hidden');
 function selected(group){return document.querySelector(`[data-group="${group}"] .selected`)?.dataset.value;}
+
 function updateDetails(){
   const hasZoom=selectedOperations.has('zoom-in')||selectedOperations.has('zoom-out');
-  const hasRatio=['resize','portrait-landscape','landscape-portrait'].some(x=>selectedOperations.has(x));
+  const hasRatio=['resize','portrait-landscape','landscape-portrait'].some(key=>selectedOperations.has(key));
   const portraitToLandscape=selectedOperations.has('portrait-landscape')&&!selectedOperations.has('landscape-portrait');
   const landscapeToPortrait=selectedOperations.has('landscape-portrait')&&!selectedOperations.has('portrait-landscape');
   $('details-panel').classList.toggle('hidden',!selectedOperations.size);
@@ -22,72 +21,127 @@ function updateDetails(){
       ||landscapeToPortrait&&!selectedOperations.has('resize')&&['3:2','16:9'].includes(value);
     option.classList.toggle('hidden',hidden);
   });
-  $('step-one-state').textContent=selectedOperations.size?`${selectedOperations.size} รายการ`: 'ยังไม่ได้เลือก';
-  $('ref-dropzone').classList.toggle('hidden',referenceChoice!=='yes');
+  $('step-one-state').textContent=selectedOperations.size?`${selectedOperations.size} รายการ`:'ยังไม่ได้เลือก';
   updateAction();
 }
-function updateAction(){ $('edit-button').disabled=!(selectedOperations.size&&mainFile&&apiKey&&(referenceChoice==='no'||referenceFile))||$('edit-button').classList.contains('loading'); }
+
+function updateAction(){
+  $('edit-button').disabled=!(selectedOperations.size&&mainFile)||$('edit-button').classList.contains('loading');
+}
+
 operationButtons.forEach(button=>button.addEventListener('click',()=>{
   const key=button.dataset.operation;
   if(selectedOperations.has(key)){selectedOperations.delete(key);button.setAttribute('aria-pressed','false');}
   else{selectedOperations.add(key);button.setAttribute('aria-pressed','true');}
   updateDetails();hideMessage();
 }));
-document.querySelectorAll('[data-reference]').forEach(button=>button.addEventListener('click',()=>{
-  referenceChoice=button.dataset.reference;
-  document.querySelectorAll('[data-reference]').forEach(item=>{const active=item===button;item.classList.toggle('selected',active);item.setAttribute('aria-pressed',String(active));});
-  if(referenceChoice==='no'){referenceFile=null;$('reference-image').value='';$('ref-preview-wrap').classList.add('hidden');}
-  updateDetails();
-}));
+
 document.querySelectorAll('[data-group]').forEach(group=>group.addEventListener('click',event=>{
-  const button=event.target.closest('button[data-value]');if(!button)return;
+  const button=event.target.closest('button[data-value]');
+  if(!button)return;
   group.querySelectorAll('[data-value]').forEach(item=>item.classList.toggle('selected',item===button));
 }));
-function attachInput(input,which){
-  const zone=$(which==='main'?'main-dropzone':'ref-dropzone');
-  input.addEventListener('change',()=>{if(input.files?.[0])setFile(input.files[0],which);});
-  ['dragenter','dragover'].forEach(event=>zone.addEventListener(event,e=>{e.preventDefault();zone.classList.add('dragging');}));
-  ['dragleave','drop'].forEach(event=>zone.addEventListener(event,e=>{e.preventDefault();zone.classList.remove('dragging');if(event==='drop'&&e.dataTransfer.files?.[0])setFile(e.dataTransfer.files[0],which);}));
+
+function attachMainInput(){
+  const input=$('main-image'),zone=$('main-dropzone');
+  input.addEventListener('change',()=>{if(input.files?.[0])setFile(input.files[0]);});
+  ['dragenter','dragover'].forEach(name=>zone.addEventListener(name,event=>{event.preventDefault();zone.classList.add('dragging');}));
+  ['dragleave','drop'].forEach(name=>zone.addEventListener(name,event=>{
+    event.preventDefault();zone.classList.remove('dragging');
+    if(name==='drop'&&event.dataTransfer.files?.[0])setFile(event.dataTransfer.files[0]);
+  }));
 }
-function setFile(file,which){
+
+function setFile(file){
   if(!/^image\/(png|jpeg|webp)$/.test(file.type)){message('รองรับเฉพาะไฟล์ PNG, JPG และ WebP');return;}
   if(file.size>20*1024*1024){message('ไฟล์มีขนาดเกิน 20 MB กรุณาเลือกภาพที่เล็กลง');return;}
-  if(which==='ref'&&referenceChoice!=='yes')return;
-  const isMain=which==='main',preview=$(isMain?'main-preview':'ref-preview'),wrap=$(isMain?'main-preview-wrap':'ref-preview-wrap');
-  if(isMain)mainFile=file;else referenceFile=file;
-  preview.src=URL.createObjectURL(file);wrap.classList.remove('hidden');
-  if(isMain){$('upload-hint').textContent=`ภาพหลักพร้อมแล้ว · ${file.name}`;}
+  mainFile=file;
+  $('main-preview').src=URL.createObjectURL(file);
+  $('main-preview-wrap').classList.remove('hidden');
+  $('upload-hint').textContent=`ภาพพร้อมจัดเฟรม · ${file.name}`;
   updateAction();hideMessage();
 }
-attachInput($('main-image'),'main');attachInput($('reference-image'),'ref');
-$('remove-main').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();mainFile=null;$('main-image').value='';$('main-preview-wrap').classList.add('hidden');$('upload-hint').textContent='เลือกงานด้านบนก่อน แล้วอัปโหลดภาพหลักเพื่อเริ่มต้น';updateAction();});
-$('remove-ref').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();referenceFile=null;$('reference-image').value='';$('ref-preview-wrap').classList.add('hidden');});
-async function checkServer(){try{const response=await fetch(apiUrl('/api/health'));const data=await response.json();const ready=response.ok&&data.serviceReady;$('api-status').textContent=ready?'พร้อมรับ API key':'บริการยังไม่พร้อม';if(!ready)$('api-status').previousElementSibling.style.background='#e9a27b';updateAction();}catch{$('api-status').textContent='เชื่อมต่อ image service ไม่ได้';$('api-status').previousElementSibling.style.background='#e9a27b';}}
-checkServer();
-$('api-key-input').addEventListener('input',()=>{apiKey=$('api-key-input').value.trim();$('api-key-clear').classList.toggle('hidden',!apiKey);$('api-key-status').textContent=apiKey?'key พร้อมใช้ในแท็บนี้':'ยังไม่ได้ใส่ key';updateAction();});
-$('api-key-clear').addEventListener('click',()=>{$('api-key-input').value='';apiKey='';$('api-key-clear').classList.add('hidden');$('api-key-status').textContent='ล้าง key แล้ว';updateAction();});
-window.addEventListener('pagehide',()=>{apiKey='';$('api-key-input').value='';});
-function buildPrompt(){
-  const tasks=[...selectedOperations].map(key=>operationLabels[key]).join(', ');
-  const parts=[`Edit the uploaded source image. Requested operations: ${tasks}.`,'Preserve the identity, face, expression, pose, proportions, hair, clothing, accessories, lighting, tonal treatment, and original medium as closely as possible. Do not add people, objects, text, logos, or unrelated story elements.'];
-  if(selectedOperations.has('zoom-out')){const level=selected('zoom');const pct={subtle:'90%',moderate:'75–80%',strong:'60%'}[level]||'75–80%';parts.push(`For zoom out, use natural outpainting to make the main subject about ${pct} of its current apparent scale. Continue the surrounding scene naturally. Never add blank borders.`);}
-  if(selectedOperations.has('zoom-in')){const level=selected('zoom');parts.push(`For zoom in, crop and reframe around the existing main subject with a ${level||'moderate'} crop. Keep important features inside the frame.`);}
-  if(selectedOperations.has('resize')||selectedOperations.has('portrait-landscape')||selectedOperations.has('landscape-portrait')){const ratio=selected('ratio')||'balanced';parts.push(`Reframe or extend the scene to aspect ratio ${ratio==='balanced'?'a balanced composition close to the original image':ratio}. Preserve aspect ratio of subjects; when cropping would remove important content, extend the scene naturally instead.`);}
-  if(referenceFile)parts.push('A second uploaded image is a visual reference only. Use it to guide the requested framing mood and visual treatment while keeping the original subject from the first image.');
-  parts.push('Match background texture, perspective, lighting, shadows, depth of field, and style. Return only the finished image.');return parts.join('\n\n');
-}
-$('edit-button').addEventListener('click',async()=>{
-  if(!mainFile||!selectedOperations.size||(referenceChoice==='yes'&&!referenceFile))return;
-  hideMessage();const button=$('edit-button');button.classList.add('loading');button.disabled=true;button.querySelector('span').textContent='กำลังจัดเฟรมภาพ';button.classList.add('loading-pulse');
-  try{
-    const form=new FormData();form.append('image',mainFile);if(referenceFile)form.append('reference',referenceFile);form.append('prompt',buildPrompt());form.append('ratio',selected('ratio')||'balanced');
-    const headers={'x-openai-api-key':apiKey};
-    const response=await fetch(apiUrl('/api/edit'),{method:'POST',headers,body:form});const data=await response.json();
-    if(!response.ok)throw new Error(data.error||'ไม่สามารถประมวลผลภาพได้');
-    resultUrl=`data:${data.mimeType||'image/png'};base64,${data.image}`;$('result-image').src=resultUrl;
-    $('result-caption').textContent=[...selectedOperations].map(key=>operationLabels[key]).join(' · ');
-    $('result-section').classList.remove('hidden');$('result-section').scrollIntoView({behavior:'smooth',block:'center'});message('เสร็จแล้ว ดาวน์โหลดภาพได้จากปุ่มด้านบน','success');
-  }catch(error){message(error.message.includes('fetch')?'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจสอบว่าเปิดเว็บด้วย npm run dev':error.message);}
-  finally{button.classList.remove('loading','loading-pulse');button.querySelector('span').textContent='สร้างภาพใหม่';updateAction();}
+
+attachMainInput();
+$('remove-main').addEventListener('click',event=>{
+  event.preventDefault();event.stopPropagation();mainFile=null;$('main-image').value='';
+  $('main-preview').removeAttribute('src');$('main-preview-wrap').classList.add('hidden');
+  $('upload-hint').textContent='เลือกงานด้านบนก่อน แล้วอัปโหลดภาพหลักเพื่อเริ่มต้น';updateAction();
 });
-$('download-result').addEventListener('click',()=>{if(!resultUrl)return;const link=document.createElement('a');link.href=resultUrl;link.download='frame-result.png';link.click();});
+
+function targetAspect(width,height){
+  const wantsRatio=['resize','portrait-landscape','landscape-portrait'].some(key=>selectedOperations.has(key));
+  if(!wantsRatio)return width/height;
+  const value=selected('ratio')||'balanced';
+  if(value!=='balanced'){
+    const [w,h]=value.split(':').map(Number);
+    if(w&&h)return w/h;
+  }
+  if(selectedOperations.has('portrait-landscape')&&!selectedOperations.has('landscape-portrait'))return 16/9;
+  if(selectedOperations.has('landscape-portrait')&&!selectedOperations.has('portrait-landscape'))return 9/16;
+  return width/height;
+}
+
+function zoomFactor(){
+  const strength=selected('zoom')||'moderate';
+  const out={subtle:.9,moderate:.78,strong:.62}[strength]||.78;
+  const inside={subtle:1.1,moderate:1.25,strong:1.5}[strength]||1.25;
+  let factor=1;
+  if(selectedOperations.has('zoom-out'))factor*=out;
+  if(selectedOperations.has('zoom-in'))factor*=inside;
+  return Math.max(.4,Math.min(2.2,factor));
+}
+
+async function renderLocally(file){
+  const image=await createImageBitmap(file);
+  const sourceWidth=image.width,sourceHeight=image.height;
+  const aspect=targetAspect(sourceWidth,sourceHeight);
+  const sourceAspect=sourceWidth/sourceHeight;
+  const logicalWidth=aspect>=sourceAspect?sourceHeight*aspect:sourceWidth;
+  const logicalHeight=aspect>=sourceAspect?sourceHeight:sourceWidth/aspect;
+  const outputScale=Math.min(1,4096/Math.max(logicalWidth,logicalHeight));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(logicalWidth*outputScale));
+  canvas.height=Math.max(1,Math.round(logicalHeight*outputScale));
+  const context=canvas.getContext('2d',{alpha:false});
+  if(!context)throw new Error('เบราว์เซอร์นี้ไม่รองรับการประมวลผลภาพในเครื่อง');
+  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+
+  // A softened copy of the source fills the new canvas; the sharp original remains centered above it.
+  context.fillStyle='#e8e9e2';context.fillRect(0,0,canvas.width,canvas.height);
+  context.save();
+  context.filter=`blur(${Math.max(14,Math.round(Math.min(canvas.width,canvas.height)*.025))}px) saturate(.92)`;
+  context.drawImage(image,0,0,canvas.width,canvas.height);
+  context.restore();
+  context.fillStyle='rgba(30,35,28,.035)';context.fillRect(0,0,canvas.width,canvas.height);
+
+  const scale=outputScale*zoomFactor();
+  const contentWidth=sourceWidth*scale,contentHeight=sourceHeight*scale;
+  const x=(canvas.width-contentWidth)/2,y=(canvas.height-contentHeight)/2;
+  context.drawImage(image,x,y,contentWidth,contentHeight);
+  image.close();
+
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('บันทึกภาพไม่สำเร็จ กรุณาลองใหม่')),'image/png'));
+  return {blob,width:canvas.width,height:canvas.height};
+}
+
+$('edit-button').addEventListener('click',async()=>{
+  if(!mainFile||!selectedOperations.size)return;
+  hideMessage();const button=$('edit-button');button.classList.add('loading','loading-pulse');button.disabled=true;button.querySelector('span').textContent='กำลังจัดเฟรมภาพ';
+  try{
+    const result=await renderLocally(mainFile);
+    if(resultUrl)URL.revokeObjectURL(resultUrl);
+    resultUrl=URL.createObjectURL(result.blob);$('result-image').src=resultUrl;
+    $('result-caption').textContent=`${[...selectedOperations].map(key=>operationLabels[key]).join(' · ')} · ${result.width} × ${result.height} px · ประมวลผลในเครื่อง`;
+    $('result-section').classList.remove('hidden');$('result-section').scrollIntoView({behavior:'smooth',block:'center'});
+    message('จัดเฟรมเสร็จแล้ว ดาวน์โหลดภาพได้จากปุ่มด้านบน','success');
+  }catch(error){message(error.message||'จัดเฟรมภาพไม่สำเร็จ กรุณาลองใหม่');}
+  finally{button.classList.remove('loading','loading-pulse');button.querySelector('span').textContent='จัดเฟรมภาพ';updateAction();}
+});
+
+$('download-result').addEventListener('click',()=>{
+  if(!resultUrl)return;
+  const link=document.createElement('a');link.href=resultUrl;link.download='frame-result.png';link.click();
+});
+
+window.addEventListener('pagehide',()=>{if(resultUrl)URL.revokeObjectURL(resultUrl);});

@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f4f4f0" />
-  <meta name="description" content="จัดเฟรมภาพใหม่ ขยายฉาก และเปลี่ยนสัดส่วนภาพด้วย AI" />
-  <title>Frame — จัดเฟรมภาพด้วย AI</title>
+  <meta name="description" content="จัดเฟรมภาพ ครอป และเปลี่ยนสัดส่วนภาพในเบราว์เซอร์ของคุณ" />
+  <title>Frame — จัดเฟรมภาพในเครื่อง</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -15,14 +15,13 @@
       <div class="rail-label">WORKSPACE</div>
       <a class="rail-link active" href="#editor"><span class="rail-icon">◫</span> จัดเฟรมภาพ</a>
       <a class="rail-link muted" href="#guide"><span class="rail-icon">⌘</span> วิธีใช้งาน</a>
-      <div class="rail-bottom"><span class="status-dot"></span><span id="api-status">กำลังตรวจการเชื่อมต่อ…</span></div>
+      <div class="rail-bottom"><span class="status-dot"></span><span>ประมวลผลในเครื่อง</span></div>
     </aside>
 
     <main id="top" class="main-content">
-      <header class="topbar"><div class="crumb">เครื่องมือภาพ <span>/</span> <b>Image framing</b></div><div class="top-tag"><span class="sparkle">✳</span> AI image studio</div></header>
-      <section class="api-key-panel" aria-labelledby="api-key-title">
-        <div class="api-key-copy"><div class="api-key-heading"><span class="key-icon">⌘</span><div><h2 id="api-key-title">ใช้ OpenAI API key ของคุณ</h2><p>ใส่ key เพื่อให้ภาพที่คุณสร้างคิดค่าใช้จ่ายกับบัญชี API ของคุณเอง</p></div></div><p class="api-key-note">key จะอยู่ในหน่วยความจำของแท็บนี้และส่งผ่าน HTTPS ไปยัง backend เฉพาะตอนประมวลผล แอปไม่บันทึก key ลง storage, database หรือ log ใช้ได้เฉพาะ OpenAI API key จาก Platform — Codex/ChatGPT login token ใช้แทนไม่ได้</p></div>
-        <div class="api-key-controls"><label class="sr-only" for="api-key-input">OpenAI API key</label><input id="api-key-input" type="password" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="วาง OpenAI API key ของคุณ" /><button id="api-key-clear" type="button" class="hidden">ล้าง key</button><span id="api-key-status" role="status" aria-live="polite">ยังไม่ได้ใส่ key</span></div>
+      <header class="topbar"><div class="crumb">เครื่องมือภาพ <span>/</span> <b>Image framing</b></div><div class="top-tag"><span class="sparkle">✳</span> Local image studio</div></header>
+      <section class="local-mode-panel" aria-label="การประมวลผลในเครื่อง">
+        <span class="local-mode-icon">◈</span><div><strong>ประมวลผลในเบราว์เซอร์</strong><p>ภาพไม่ถูกส่งไปยังเซิร์ฟเวอร์ เว็บใช้การครอป ขยายสัดส่วน และเติมฉากรอบภาพด้วยพื้นหลังเบลอจากสีของภาพเดิม</p></div><span class="local-mode-status"><i></i> พร้อมใช้งานในเครื่อง</span>
       </section>
 
       <section class="intro" id="editor">
@@ -39,8 +38,6 @@
           <button class="operation" data-operation="portrait-landscape" aria-pressed="false"><span class="op-art wide-art"><i></i><b>↔</b></span><span class="op-title">Portrait → Landscape</span><span class="op-desc">ขยายฉากให้เป็นแนวนอน</span><span class="checkmark">✓</span></button>
           <button class="operation" data-operation="landscape-portrait" aria-pressed="false"><span class="op-art tall-art"><i></i><b>↕</b></span><span class="op-title">Landscape → Portrait</span><span class="op-desc">ขยายฉากให้เป็นแนวตั้ง</span><span class="checkmark">✓</span></button>
         </div>
-        <div class="reference-row"><div><div class="ref-title">มีภาพอ้างอิงเพิ่มเติมไหม?</div><div class="ref-hint">ใช้ช่วยกำหนดสไตล์หรือบรรยากาศที่ต้องการ</div></div><div class="choice-group" role="group" aria-label="ภาพอ้างอิง"><button class="choice selected" data-reference="no" aria-pressed="true">ไม่มีภาพอ้างอิง</button><button class="choice" data-reference="yes" aria-pressed="false">มีภาพอ้างอิง</button></div></div>
-
         <div class="details-panel hidden" id="details-panel">
           <div class="step-heading detail-heading"><span class="step-number">02</span><div><h2>กำหนดระดับและสัดส่วน</h2><p>ตัวเลือกจะแสดงตามงานที่เลือก</p></div></div>
           <div id="zoom-details" class="detail-row hidden"><div class="detail-label"><b>ระดับการซูม</b><span>กำหนดระยะที่ต้องการปรับ</span></div><div class="choice-group" data-group="zoom"><button class="choice" data-value="subtle">นุ่มนวล</button><button class="choice selected" data-value="moderate">ปานกลาง</button><button class="choice" data-value="strong">ชัดเจน</button></div></div>
@@ -49,19 +46,18 @@
       </section>
 
       <section class="upload-section" id="upload-section">
-        <div class="step-heading upload-title"><span class="step-number">03</span><div><h2>เพิ่มภาพของคุณ</h2><p>อัปโหลดภาพหลัก แล้วค่อยเพิ่มภาพอ้างอิงถ้ามี</p></div></div>
+        <div class="step-heading upload-title"><span class="step-number">03</span><div><h2>เพิ่มภาพของคุณ</h2><p>เลือกรูปหลักที่ต้องการจัดเฟรม</p></div></div>
         <div class="upload-grid">
           <label class="dropzone" id="main-dropzone" for="main-image"><input id="main-image" type="file" accept="image/png,image/jpeg,image/webp" /><span class="upload-icon">↑</span><b>วางภาพหลักที่นี่</b><span>หรือ <u>เลือกไฟล์จากอุปกรณ์</u></span><small>PNG, JPG หรือ WebP · ไม่เกิน 20 MB</small><div class="preview-wrap hidden" id="main-preview-wrap"><img id="main-preview" alt="ตัวอย่างภาพหลัก" /><button class="remove-image" id="remove-main" type="button" aria-label="ลบภาพหลัก">×</button></div></label>
-          <label class="dropzone reference-dropzone hidden" id="ref-dropzone" for="reference-image"><input id="reference-image" type="file" accept="image/png,image/jpeg,image/webp" /><span class="upload-icon ref-upload-icon">＋</span><b>เพิ่มภาพอ้างอิง</b><span>วางภาพ หรือ <u>เลือกไฟล์</u></span><small>ไม่บังคับ · PNG, JPG หรือ WebP</small><div class="preview-wrap hidden" id="ref-preview-wrap"><img id="ref-preview" alt="ตัวอย่างภาพอ้างอิง" /><button class="remove-image" id="remove-ref" type="button" aria-label="ลบภาพอ้างอิง">×</button></div></label>
         </div>
         <div class="upload-hint" id="upload-hint">เลือกงานด้านบนก่อน แล้วอัปโหลดภาพหลักเพื่อเริ่มต้น</div>
       </section>
 
       <section class="result-section hidden" id="result-section"><div class="result-top"><div><div class="eyebrow"><span class="eyebrow-line"></span> ผลลัพธ์</div><h2>จัดเฟรมเสร็จแล้ว</h2></div><button class="download-btn" id="download-result">↓ ดาวน์โหลดภาพ</button></div><div class="result-frame"><img id="result-image" alt="ภาพหลังปรับเฟรม" /></div><div class="result-caption" id="result-caption"></div></section>
-      <div class="action-bar"><div class="privacy-note"><span>◌</span> ภาพของคุณจะถูกส่งเพื่อประมวลผลและไม่เก็บไว้บนเว็บนี้</div><button class="primary-button" id="edit-button" disabled><span>สร้างภาพใหม่</span><span class="button-sparkle">✳</span></button></div>
+      <div class="action-bar"><div class="privacy-note"><span>◌</span> ภาพประมวลผลในเบราว์เซอร์ของคุณและไม่ถูกอัปโหลด</div><button class="primary-button" id="edit-button" disabled><span>จัดเฟรมภาพ</span><span class="button-sparkle">✳</span></button></div>
       <div class="message hidden" id="message" role="status" aria-live="polite"></div>
 
-      <footer id="guide"><span>FRAME STUDIO <i>© 2026</i></span><span>ออกแบบมาเพื่อจัดเฟรมภาพอย่างเป็นธรรมชาติ</span><a href="https://platform.openai.com/docs/guides/images-vision" target="_blank" rel="noreferrer">เกี่ยวกับการประมวลผลภาพ ↗</a></footer>
+      <footer id="guide"><span>FRAME STUDIO <i>© 2026</i></span><span>ภาพของคุณไม่ออกจากอุปกรณ์</span><span>Local processing</span></footer>
     </main>
   </div>
   <script src="./app.js" defer></script>
