@@ -38,11 +38,13 @@ OPENAI_API_KEY="your-api-key" npm run dev
 
 ## นำขึ้น GitHub และ deploy
 
-โปรเจ็กต์นี้มีทั้งหน้าเว็บและ API server จึงไม่สามารถทำ image edit บน GitHub Pages เพียงอย่างเดียวได้ ให้นำ repository นี้ขึ้น GitHub แล้ว deploy Node.js service บนโฮสต์ที่รองรับ Node.js เช่น Render, Railway หรือ Fly.io จากนั้นตั้ง `OPENAI_API_KEY` เป็น secret/environment variable ในหน้า dashboard ของโฮสต์ ห้ามใส่ key ใน GitHub Actions log, source code หรือไฟล์ `.env` ที่ commit ขึ้น repository
+หน้าเว็บถูกเผยแพร่ผ่าน GitHub Pages จาก workflow `.github/workflows/deploy-pages.yml` ส่วน image-edit API ทำงานบน Sites Worker แยกต่างหาก โดยจำกัด CORS ไว้ที่ GitHub Pages origin และต้องกรอกรหัสเข้าใช้ก่อนเรียก API
+
+ไฟล์ `.github/workflows/deploy-pages.yml` จะ build `pages-dist/` แล้ว deploy ทุกครั้งที่ push ไป `main`; หาก workflow แจ้งให้ตั้ง publishing source ให้เลือก **GitHub Actions** ใน repository Settings → Pages
 
 บนโฮสต์ให้ใช้คำสั่ง build ว่าง และ start command เป็น `npm start` (Node 22+). ตั้ง `OPENAI_API_KEY` และ `APP_ACCESS_PASSWORD` เป็น environment secrets ในหน้า dashboard ของโฮสต์ ตรวจว่า route `/api/health` ตอบกลับก่อนใช้งาน
 
-สำหรับการ deploy ผ่าน Codex Sites จะใช้ Worker ที่ `worker/index.js` โดย build จะฝังหน้าเว็บและ assets เข้าไปใน Worker และสร้าง output ใน `dist/`. Site ใช้ audience แบบ private; ตั้ง `OPENAI_API_KEY` ผ่าน Site runtime secret ก่อนจึงจะเปิดใช้การแก้ภาพได้
+สำหรับการ deploy ผ่าน Codex Sites จะใช้ Worker ที่ `worker/index.js` โดย build จะฝังหน้าเว็บและ assets เข้าไปใน Worker และสร้าง output ใน `dist/`. `OPENAI_API_KEY` และ `APP_ACCESS_PASSWORD` อยู่ใน Site runtime secrets เท่านั้น
 
 ## การทำงาน
 

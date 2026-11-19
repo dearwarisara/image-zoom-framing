@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node server.mjs", "dev": "node server.mjs", "build:worker": "node scripts/build-worker.mjs" },
+  "scripts": { "start": "node server.mjs", "dev": "node server.mjs", "build:worker": "node scripts/build-worker.mjs", "build:pages": "node scripts/build-pages.mjs" },
   "engines": { "node": ">=22" },
   "dependencies": { "@fastify/multipart": "^9.0.3", "fastify": "^5.2.1", "openai": "^5.12.2" }
 }
