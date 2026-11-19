@@ -3,8 +3,7 @@ const apiBase=location.hostname.endsWith('github.io')?'https://image-zoom-framin
 const apiUrl=path=>`${apiBase}${path}`;
 const operationButtons=[...document.querySelectorAll('.operation')];
 const selectedOperations=new Set();
-let referenceChoice='no',mainFile=null,referenceFile=null,resultUrl='';
-let accessRequired=false,accessPassword='';
+let referenceChoice='no',mainFile=null,referenceFile=null,resultUrl='',apiKey='';
 const $=id=>document.getElementById(id);
 const message=(text,type='error')=>{const node=$('message');node.textContent=text;node.classList.remove('hidden','success');if(type==='success')node.classList.add('success');};
 const hideMessage=()=>$('message').classList.add('hidden');
@@ -27,7 +26,7 @@ function updateDetails(){
   $('ref-dropzone').classList.toggle('hidden',referenceChoice!=='yes');
   updateAction();
 }
-function updateAction(){ $('edit-button').disabled=!(selectedOperations.size&&mainFile&&(referenceChoice==='no'||referenceFile)&&(!accessRequired||accessPassword))||$('edit-button').classList.contains('loading'); }
+function updateAction(){ $('edit-button').disabled=!(selectedOperations.size&&mainFile&&apiKey&&(referenceChoice==='no'||referenceFile))||$('edit-button').classList.contains('loading'); }
 operationButtons.forEach(button=>button.addEventListener('click',()=>{
   const key=button.dataset.operation;
   if(selectedOperations.has(key)){selectedOperations.delete(key);button.setAttribute('aria-pressed','false');}
@@ -63,9 +62,11 @@ function setFile(file,which){
 attachInput($('main-image'),'main');attachInput($('reference-image'),'ref');
 $('remove-main').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();mainFile=null;$('main-image').value='';$('main-preview-wrap').classList.add('hidden');$('upload-hint').textContent='เลือกงานด้านบนก่อน แล้วอัปโหลดภาพหลักเพื่อเริ่มต้น';updateAction();});
 $('remove-ref').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();referenceFile=null;$('reference-image').value='';$('ref-preview-wrap').classList.add('hidden');});
-async function checkServer(){try{const response=await fetch(apiUrl('/api/health'));const data=await response.json();accessRequired=data.requiresAccess;$('access-panel').classList.toggle('hidden',!accessRequired);$('api-status').textContent=data.configured?'พร้อมใช้งาน':'รอตั้งค่า API key';if(!data.configured)$('api-status').previousElementSibling.style.background='#e9a27b';updateAction();}catch{$('api-status').textContent='เชื่อมต่อ image service ไม่ได้';$('api-status').previousElementSibling.style.background='#e9a27b';}}
+async function checkServer(){try{const response=await fetch(apiUrl('/api/health'));const data=await response.json();const ready=response.ok&&data.serviceReady;$('api-status').textContent=ready?'พร้อมรับ API key':'บริการยังไม่พร้อม';if(!ready)$('api-status').previousElementSibling.style.background='#e9a27b';updateAction();}catch{$('api-status').textContent='เชื่อมต่อ image service ไม่ได้';$('api-status').previousElementSibling.style.background='#e9a27b';}}
 checkServer();
-$('access-save').addEventListener('click',()=>{accessPassword=$('access-password').value.trim();$('access-confirmation').classList.toggle('hidden',!accessPassword);updateAction();});
+$('api-key-input').addEventListener('input',()=>{apiKey=$('api-key-input').value.trim();$('api-key-clear').classList.toggle('hidden',!apiKey);$('api-key-status').textContent=apiKey?'key พร้อมใช้ในแท็บนี้':'ยังไม่ได้ใส่ key';updateAction();});
+$('api-key-clear').addEventListener('click',()=>{$('api-key-input').value='';apiKey='';$('api-key-clear').classList.add('hidden');$('api-key-status').textContent='ล้าง key แล้ว';updateAction();});
+window.addEventListener('pagehide',()=>{apiKey='';$('api-key-input').value='';});
 function buildPrompt(){
   const tasks=[...selectedOperations].map(key=>operationLabels[key]).join(', ');
   const parts=[`Edit the uploaded source image. Requested operations: ${tasks}.`,'Preserve the identity, face, expression, pose, proportions, hair, clothing, accessories, lighting, tonal treatment, and original medium as closely as possible. Do not add people, objects, text, logos, or unrelated story elements.'];
@@ -80,7 +81,7 @@ $('edit-button').addEventListener('click',async()=>{
   hideMessage();const button=$('edit-button');button.classList.add('loading');button.disabled=true;button.querySelector('span').textContent='กำลังจัดเฟรมภาพ';button.classList.add('loading-pulse');
   try{
     const form=new FormData();form.append('image',mainFile);if(referenceFile)form.append('reference',referenceFile);form.append('prompt',buildPrompt());form.append('ratio',selected('ratio')||'balanced');
-    const headers={};if(accessRequired)headers['x-app-password']=accessPassword;
+    const headers={'x-openai-api-key':apiKey};
     const response=await fetch(apiUrl('/api/edit'),{method:'POST',headers,body:form});const data=await response.json();
     if(!response.ok)throw new Error(data.error||'ไม่สามารถประมวลผลภาพได้');
     resultUrl=`data:${data.mimeType||'image/png'};base64,${data.image}`;$('result-image').src=resultUrl;

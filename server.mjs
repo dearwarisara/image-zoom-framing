@@ -4,24 +4,16 @@ import OpenAI from 'openai';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { timingSafeEqual } from 'node:crypto';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
-const accessPassword = process.env.APP_ACCESS_PASSWORD || '';
-if (process.env.NODE_ENV === 'production' && !accessPassword) throw new Error('Set APP_ACCESS_PASSWORD before starting the production server.');
-const app = Fastify({ logger: true, bodyLimit: 45 * 1024 * 1024 });
+const app = Fastify({ logger: { redact: { paths: ['req.headers.x-openai-api-key'], censor: '[Redacted]' } }, bodyLimit: 45 * 1024 * 1024 });
 await app.register(multipart, { limits: { files: 2, fileSize: 20 * 1024 * 1024, fields: 8 } });
 const allowed = new Map([['.html','text/html; charset=utf-8'],['.css','text/css; charset=utf-8'],['.js','text/javascript; charset=utf-8']]);
 
-app.get('/api/health', async () => ({ configured: Boolean(process.env.OPENAI_API_KEY), requiresAccess: Boolean(accessPassword) }));
+app.get('/api/health', async () => ({ serviceReady: true, userApiKeyRequired: true }));
 app.post('/api/edit', async (request, reply) => {
-  if (accessPassword) {
-    const supplied = request.headers['x-app-password'] || '';
-    const expectedBytes = Buffer.from(accessPassword);
-    const suppliedBytes = Buffer.from(supplied);
-    if (expectedBytes.length !== suppliedBytes.length || !timingSafeEqual(expectedBytes, suppliedBytes)) return reply.code(401).send({ error: 'รหัสเข้าใช้งานไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่' });
-  }
-  if (!process.env.OPENAI_API_KEY) return reply.code(503).send({ error: 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า OPENAI_API_KEY ดูวิธีตั้งค่าใน README.md' });
+  const userApiKey = String(request.headers['x-openai-api-key'] || '').trim();
+  if (!userApiKey) return reply.code(401).send({ error: 'กรุณาใส่ OpenAI API key ของคุณก่อนสร้างภาพ' });
   const fields = {};
   for await (const part of request.parts()) {
     if (part.type === 'file') {
@@ -34,13 +26,13 @@ app.post('/api/edit', async (request, reply) => {
   const images = [fields.image, ...(fields.reference ? [fields.reference] : [])];
   const sizeByRatio = { '1:1': '1024x1024', '4:5': '1024x1280', '3:2': '1536x1024', '16:9': '1536x864', '9:16': '1008x1792' };
   try {
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const client = new OpenAI({ apiKey: userApiKey });
     const result = await client.images.edit({ model: 'gpt-image-2.5-sunburst', image: images, prompt: fields.prompt.trim(), size: sizeByRatio[fields.ratio] || 'auto', quality: 'high', output_format: 'png', n: 1 });
     const encoded = result.data?.[0]?.b64_json;
     if (!encoded) throw new Error('The image API returned no image data.');
     return { image: encoded, mimeType: 'image/png' };
   } catch (error) {
-    request.log.error({ err: error }, 'Image edit failed');
+    request.log.error({ status: error.status || null }, 'Image edit failed');
     const status = error.status && error.status >= 400 && error.status < 600 ? error.status : 502;
     const detail = error.status === 401 ? 'API key ไม่ถูกต้อง' : error.status === 429 ? 'ใช้งาน API ถึงขีดจำกัดชั่วคราว ลองใหม่ภายหลัง' : 'ประมวลผลภาพไม่สำเร็จ ตรวจสอบสิทธิ์ API และลองใหม่';
     return reply.code(status).send({ error: detail });

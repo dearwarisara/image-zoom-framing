@@ -4,11 +4,9 @@
 
 ## ต้องใช้ข้อมูลรับรองแบบใด
 
-เว็บนี้ใช้ **OpenAI API key** ที่ฝั่งเซิร์ฟเวอร์ เพื่อเรียก Images API สำหรับแก้ไขภาพ การลงชื่อเข้าใช้ Codex ด้วยบัญชี ChatGPT ไม่มี Codex token ที่เว็บ GitHub ภายนอกนำมาใช้แทน API key ได้ เว็บจึงไม่อ่านหรือส่งต่อ Codex session token
+เว็บนี้ให้ผู้ใช้ใส่ **OpenAI API key ของตัวเอง** ในช่องบนหน้าเว็บ เพื่อส่งคำขอแก้ภาพผ่าน backend ไปยัง Images API โดยตรงจาก key ของผู้ใช้ แอปเก็บ key ไว้ในหน่วยความจำของแท็บปัจจุบันเท่านั้น ไม่เขียนลง storage, database หรือ log และล้างเมื่อปิด/ออกจากหน้าเว็บ
 
-API key ไม่ได้รวมอยู่ใน source และห้ามเพิ่มลง GitHub ให้ใส่เป็น environment secret บนโฮสต์ที่ใช้รันเซิร์ฟเวอร์แทน การใช้ Images API อาจมีค่าใช้จ่ายแยกจากสิทธิ์ใช้งาน Codex/ChatGPT
-
-หาก deploy เป็นเว็บสาธารณะ ให้ตั้ง `APP_ACCESS_PASSWORD` เป็นรหัสเข้าใช้แบบ shared secret ด้วย production server จะไม่เริ่มทำงานถ้าไม่มีค่านี้ หน้าเว็บจะขอรหัสก่อนส่งคำขอแก้ภาพ และเก็บรหัสไว้ในหน่วยความจำของแท็บปัจจุบันเท่านั้น
+key จะถูกส่งผ่าน HTTPS ไปยัง backend ของเว็บไซต์และต่อไปยัง OpenAI เพื่อยืนยันคำขอ ผู้ใช้ควรใส่เฉพาะ OpenAI API key จาก Platform; Codex หรือ ChatGPT sign-in token ใช้แทนไม่ได้ ค่า API คิดกับบัญชี/โปรเจ็กต์ API ของผู้ใช้ และแยกจากค่าสมาชิก ChatGPT/Codex
 
 ## รันในเครื่อง
 
@@ -18,20 +16,10 @@ API key ไม่ได้รวมอยู่ใน source และห้า�
 npm install
 ```
 
-ตั้ง environment variable ก่อนเริ่มเซิร์ฟเวอร์:
-
-**PowerShell**
-
-```powershell
-$env:OPENAI_API_KEY="your-api-key"
-$env:APP_ACCESS_PASSWORD="choose-a-private-access-password"
-npm run dev
-```
-
-**macOS / Linux**
+เริ่มเซิร์ฟเวอร์ได้โดยไม่ต้องใส่ API key ใน environment:
 
 ```bash
-OPENAI_API_KEY="your-api-key" npm run dev
+npm run dev
 ```
 
 เปิด `http://localhost:3000` เว็บจะส่งภาพไปยัง API ผ่านเซิร์ฟเวอร์ของโปรเจ็กต์ และแสดงผลลัพธ์ให้ดาวน์โหลด
@@ -40,9 +28,7 @@ OPENAI_API_KEY="your-api-key" npm run dev
 
 เว็บไซต์ production เผยแพร่ผ่าน Codex Sites และจำกัดการเข้าถึงไว้ที่บัญชีเจ้าของ ส่วน GitHub repository เก็บ source code เท่านั้น ไม่มี GitHub Pages deployment
 
-บนโฮสต์ให้ใช้คำสั่ง build ว่าง และ start command เป็น `npm start` (Node 22+). ตั้ง `OPENAI_API_KEY` และ `APP_ACCESS_PASSWORD` เป็น environment secrets ในหน้า dashboard ของโฮสต์ ตรวจว่า route `/api/health` ตอบกลับก่อนใช้งาน
-
-สำหรับการ deploy ผ่าน Codex Sites จะใช้ Worker ที่ `worker/index.js` โดย build จะฝังหน้าเว็บและ assets เข้าไปใน Worker และสร้าง output ใน `dist/`. `OPENAI_API_KEY` อยู่ใน Site runtime secret ส่วนการเข้าถึง production ถูกจำกัดด้วยสิทธิ์บัญชี Codex
+Production ใช้ Codex Sites Worker จาก `worker/index.js`; GitHub repository เก็บ source code และไม่ได้เผยแพร่ผ่าน GitHub Pages เว็บไซต์ production จำกัดการเข้าถึงผ่านสิทธิ์ Site ส่วนผู้ใช้ที่ได้รับเชิญใส่ API key ของตนเองในหน้าเว็บ
 
 ## การทำงาน
 

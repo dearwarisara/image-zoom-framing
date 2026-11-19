@@ -16,7 +16,7 @@ function corsHeaders(request) {
   if (origin === allowedOrigin) {
     headers['access-control-allow-origin'] = origin;
     headers['access-control-allow-methods'] = 'GET, POST, OPTIONS';
-    headers['access-control-allow-headers'] = 'Content-Type, X-App-Password';
+    headers['access-control-allow-headers'] = 'Content-Type, X-OpenAI-Api-Key';
     headers['access-control-max-age'] = '600';
   }
   return headers;
@@ -30,15 +30,8 @@ function json(value, status = 200, request) {
 }
 
 async function editImage(request, env) {
-  if (!env.OPENAI_API_KEY) return json({ error: 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า OPENAI_API_KEY กรุณาติดต่อผู้ดูแลเว็บไซต์' }, 503, request);
-  const suppliedPassword = request.headers.get('x-app-password') || '';
-  const authenticatedUser = request.headers.get('oai-authenticated-user-id');
-  if (env.APP_ACCESS_PASSWORD && suppliedPassword !== env.APP_ACCESS_PASSWORD) {
-    return json({ error: 'รหัสเข้าใช้งานไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่' }, 401, request);
-  }
-  if (!env.APP_ACCESS_PASSWORD && !authenticatedUser) {
-    return json({ error: 'ต้องลงชื่อเข้าใช้ก่อนเรียกใช้งาน' }, 401, request);
-  }
+  const userApiKey = (request.headers.get('x-openai-api-key') || '').trim();
+  if (!userApiKey) return json({ error: 'กรุณาใส่ OpenAI API key ของคุณก่อนสร้างภาพ' }, 401, request);
   const length = Number(request.headers.get('content-length') || 0);
   if (length > 45 * 1024 * 1024) return json({ error: 'ไฟล์มีขนาดใหญ่เกินกำหนด' }, 413, request);
 
@@ -66,7 +59,7 @@ async function editImage(request, env) {
   try {
     const response = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
-      headers: { authorization: `Bearer ${env.OPENAI_API_KEY}` },
+      headers: { authorization: `Bearer ${userApiKey}` },
       body: upstream
     });
     const data = await response.json();
@@ -90,7 +83,7 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(request) });
     }
     if (url.pathname === '/api/health' && request.method === 'GET') {
-      return json({ configured: Boolean(env.OPENAI_API_KEY), requiresAccess: Boolean(env.APP_ACCESS_PASSWORD) }, 200, request);
+      return json({ serviceReady: true, userApiKeyRequired: true }, 200, request);
     }
     if (url.pathname === '/api/edit' && request.method === 'POST') return editImage(request, env);
     if (url.pathname === '/' && request.method === 'GET') return new Response(PAGE, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });

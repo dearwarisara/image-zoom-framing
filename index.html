@@ -20,7 +20,10 @@
 
     <main id="top" class="main-content">
       <header class="topbar"><div class="crumb">เครื่องมือภาพ <span>/</span> <b>Image framing</b></div><div class="top-tag"><span class="sparkle">✳</span> AI image studio</div></header>
-      <div class="access-panel hidden" id="access-panel"><div><b>ป้องกันการใช้งานสาธารณะ</b><span>เซิร์ฟเวอร์นี้กำหนดรหัสเข้าใช้ก่อนเรียก AI</span></div><input type="password" id="access-password" autocomplete="current-password" placeholder="รหัสเข้าใช้งาน" aria-label="รหัสเข้าใช้งาน" /><button id="access-save" type="button">ยืนยันรหัส</button><span class="access-confirmation hidden" id="access-confirmation">พร้อมใช้งานในแท็บนี้</span></div>
+      <section class="api-key-panel" aria-labelledby="api-key-title">
+        <div class="api-key-copy"><div class="api-key-heading"><span class="key-icon">⌘</span><div><h2 id="api-key-title">ใช้ OpenAI API key ของคุณ</h2><p>ใส่ key เพื่อให้ภาพที่คุณสร้างคิดค่าใช้จ่ายกับบัญชี API ของคุณเอง</p></div></div><p class="api-key-note">key จะอยู่ในหน่วยความจำของแท็บนี้และส่งผ่าน HTTPS ไปยัง backend เฉพาะตอนประมวลผล แอปไม่บันทึก key ลง storage, database หรือ log ใช้ได้เฉพาะ OpenAI API key จาก Platform — Codex/ChatGPT login token ใช้แทนไม่ได้</p></div>
+        <div class="api-key-controls"><label class="sr-only" for="api-key-input">OpenAI API key</label><input id="api-key-input" type="password" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="วาง OpenAI API key ของคุณ" /><button id="api-key-clear" type="button" class="hidden">ล้าง key</button><span id="api-key-status" role="status" aria-live="polite">ยังไม่ได้ใส่ key</span></div>
+      </section>
 
       <section class="intro" id="editor">
         <div><div class="eyebrow"><span class="eyebrow-line"></span> ปรับองค์ประกอบภาพ</div><h1>ภาพเดิม<br /><em>มุมมองใหม่</em></h1><p class="intro-copy">จัดเฟรม ขยายฉาก หรือเปลี่ยนสัดส่วนภาพ<br class="desktop-only" /> โดยยังคงตัวแบบและบรรยากาศเดิมไว้</p></div>
