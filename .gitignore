@@ -1,6 +1,5 @@
 node_modules/
 dist/
-pages-dist/
 .env
 .env.local
 .DS_Store
